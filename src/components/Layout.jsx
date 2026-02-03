@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import { Dumbbell, Utensils, Calendar, Home, Flame, Activity } from 'lucide-react';
+import { Dumbbell, Utensils, Calendar, Home, Flame, Activity, Settings } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
@@ -64,7 +64,10 @@ const Layout = () => {
           textAlign: 'right',
           fontWeight: 500
         }}>
-          💪 FOCO TOTAL
+          <Link to="/settings" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-muted)', textDecoration: 'none' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>FOCO TOTAL</span>
+            <Settings size={18} />
+          </Link>
         </div>
       </header>
 

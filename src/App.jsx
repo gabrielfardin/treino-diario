@@ -7,6 +7,7 @@ import History from './pages/History';
 
 
 import HealthExam from './pages/HealthExam';
+import Settings from './pages/Settings';
 
 function App() {
     return (
@@ -18,6 +19,7 @@ function App() {
                     <Route path="nutrition" element={<Nutrition />} />
                     <Route path="health" element={<HealthExam />} /> {/* New Route */}
                     <Route path="history" element={<History />} />
+                    <Route path="settings" element={<Settings />} />
                 </Route>
             </Routes>
         </BrowserRouter>
