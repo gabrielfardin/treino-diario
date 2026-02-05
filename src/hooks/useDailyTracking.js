@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { dietPlan, workoutPlans, initialVoucherInventory, rewardDefinitions } from '../data/initialData';
+import { dietPlan, workoutPlans, initialVoucherInventory, rewardDefinitions, dailyVouchers } from '../data/initialData';
 
 const STORAGE_KEY = 'treino_diario_logs';
 const VOUCHERS_KEY = 'treino_diario_vouchers';
 const HEALTH_EXAMS_KEY = 'treino_diario_health_exams';
+const DAILY_REWARD_KEY = 'treino_diario_daily_reward';
 
 export const useDailyTracking = () => {
   const [logs, setLogs] = useState(() => {
@@ -389,12 +390,9 @@ export const useDailyTracking = () => {
     return cycleMilestone > lastClaimed;
   };
 
-  // Roll a reward based on rarity chances
+  // Roll a reward based on rarity chances (agora apenas vouchers)
   const rollReward = () => {
-    const allRewards = [
-      ...rewardDefinitions.vouchers,
-      ...rewardDefinitions.rewards
-    ];
+    const allRewards = rewardDefinitions.vouchers; // Apenas vouchers agora
     
     const rarities = rewardDefinitions.rarities;
     const roll = Math.random() * 100;
@@ -425,19 +423,86 @@ export const useDailyTracking = () => {
     const cycleMilestone = Math.floor(streak / 7) * 7;
     const currentWeekId = getWeekId();
     
-    // If it's a voucher, add to inventory
-    if (rewardDefinitions.vouchers.some(v => v.id === reward.id)) {
-      addVoucher(reward.id);
-    }
+    // Todos os rewards agora são vouchers, sempre adicionar
+    addVoucher(reward.id);
     
     // Record the claim
     setLootboxData(prev => ({
-      claimedWeeks: [...prev.claimedWeeks, currentWeekId], // Keep for history/legacy
-      lastClaimedStreak: cycleMilestone, // Update 7-day cycle pointer
+      claimedWeeks: [...prev.claimedWeeks, currentWeekId],
+      lastClaimedStreak: cycleMilestone,
       rewardHistory: [...prev.rewardHistory, {
         ...reward,
         claimedAt: new Date().toISOString(),
         weekId: currentWeekId
+      }]
+    }));
+    
+    return reward;
+  };
+
+  // ========== DAILY REWARD SYSTEM ==========
+  const [dailyRewardData, setDailyRewardData] = useState(() => {
+    const saved = localStorage.getItem(DAILY_REWARD_KEY);
+    return saved ? JSON.parse(saved) : { claimedDates: [], rewardHistory: [] };
+  });
+
+  useEffect(() => {
+    localStorage.setItem(DAILY_REWARD_KEY, JSON.stringify(dailyRewardData));
+  }, [dailyRewardData]);
+
+  // Check if today is 100% complete AND not yet claimed
+  const canClaimDailyReward = () => {
+    const today = getTodayDate();
+    const isTodayPerfect = isDayPerfect(today);
+    const alreadyClaimed = dailyRewardData.claimedDates.includes(today);
+    return isTodayPerfect && !alreadyClaimed;
+  };
+
+  // Check if already claimed today (for UI)
+  const hasDailyRewardBeenClaimed = () => {
+    const today = getTodayDate();
+    return dailyRewardData.claimedDates.includes(today);
+  };
+
+  // Roll a daily reward based on rarity chances
+  const rollDailyReward = () => {
+    const rarities = rewardDefinitions.rarities;
+    const roll = Math.random() * 100;
+    
+    let selectedRarity;
+    if (roll < rarities.epic.chance) {
+      selectedRarity = 'epic';
+    } else if (roll < rarities.epic.chance + rarities.rare.chance) {
+      selectedRarity = 'rare';
+    } else {
+      selectedRarity = 'common';
+    }
+    
+    // Filter daily vouchers by selected rarity
+    const possibleRewards = dailyVouchers.filter(r => r.rarity === selectedRarity);
+    
+    // Pick random reward from the tier
+    const reward = possibleRewards[Math.floor(Math.random() * possibleRewards.length)];
+    return { ...reward, rolledRarity: selectedRarity };
+  };
+
+  // Claim daily reward
+  const claimDailyReward = () => {
+    if (!canClaimDailyReward()) return null;
+    
+    const today = getTodayDate();
+    const reward = rollDailyReward();
+    
+    // Add to voucher inventory
+    addVoucher(reward.id);
+    
+    // Record the claim
+    setDailyRewardData(prev => ({
+      claimedDates: [...prev.claimedDates, today],
+      rewardHistory: [...prev.rewardHistory, {
+        ...reward,
+        claimedAt: new Date().toISOString(),
+        date: today
       }]
     }));
     
@@ -502,11 +567,17 @@ export const useDailyTracking = () => {
     vouchers,
     useVoucher,
     addVoucher,
-    // Lootbox
+    // Lootbox (Jackpot 7 dias)
     lootboxData,
     getCurrentStreak,
     canClaimLootbox,
     claimLootbox,
+    // Daily Reward (100% do dia)
+    dailyRewardData,
+    canClaimDailyReward,
+    hasDailyRewardBeenClaimed,
+    claimDailyReward,
+    isDayPerfect,
     // Health Exams
     healthExams,
     addHealthExam,

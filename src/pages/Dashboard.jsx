@@ -1,7 +1,7 @@
 import { useDailyTracking } from '../hooks/useDailyTracking';
 import { initialUserProfile, workoutPlans, rewardDefinitions } from '../data/initialData';
 import { useNavigate } from 'react-router-dom';
-import { Play, Trophy, Zap, Utensils, Droplets, Flame, Target, ChevronRight } from 'lucide-react';
+import { Play, Trophy, Zap, Utensils, Droplets, Flame, Target, ChevronRight, Gift } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 
@@ -43,7 +43,7 @@ const CircularProgress = ({ progress, size = 80, strokeWidth = 5, color = 'var(-
 };
 
 const Dashboard = () => {
-    const { logs, getSuggestedWorkout, setSuggestedOverride, getTodayDate, updateWorkout, calculateStats, vouchers, useVoucher, addVoucher, getCurrentStreak, canClaimLootbox, claimLootbox, lootboxData } = useDailyTracking();
+    const { logs, getSuggestedWorkout, setSuggestedOverride, getTodayDate, updateWorkout, calculateStats, vouchers, useVoucher, addVoucher, getCurrentStreak, canClaimLootbox, claimLootbox, lootboxData, canClaimDailyReward, hasDailyRewardBeenClaimed, claimDailyReward, dailyRewardData, isDayPerfect } = useDailyTracking();
     const navigate = useNavigate();
     const profile = initialUserProfile;
     const today = getTodayDate();
@@ -72,7 +72,7 @@ const Dashboard = () => {
 
 
 
-    // Loot Box state
+    // Loot Box state (Jackpot)
     const [showRewardModal, setShowRewardModal] = useState(false);
     const [claimedReward, setClaimedReward] = useState(null);
     const [isRevealing, setIsRevealing] = useState(false);
@@ -85,7 +85,28 @@ const Dashboard = () => {
     const [spinningIcons, setSpinningIcons] = useState([]);
     const [currentSpinIcon, setCurrentSpinIcon] = useState(0);
 
-    const allRewardsForSpin = [...rewardDefinitions.vouchers, ...rewardDefinitions.rewards];
+    const allRewardsForSpin = rewardDefinitions.vouchers; // Apenas vouchers agora
+
+    // Daily Reward states
+    const [showDailyModal, setShowDailyModal] = useState(false);
+    const [dailyReward, setDailyReward] = useState(null);
+    const [isDailyRevealing, setIsDailyRevealing] = useState(false);
+    const canClaimDaily = canClaimDailyReward();
+    const dailyClaimed = hasDailyRewardBeenClaimed();
+
+    // Handler for opening daily reward
+    const handleOpenDailyReward = () => {
+        setDailyReward(null);
+        setIsDailyRevealing(true);
+        setShowDailyModal(true);
+
+        // Simple reveal animation (1.5 seconds)
+        setTimeout(() => {
+            const reward = claimDailyReward();
+            setDailyReward(reward);
+            setIsDailyRevealing(false);
+        }, 1500);
+    };
 
     const handleOpenLootbox = () => {
         setClaimedReward(null);
@@ -546,56 +567,96 @@ const Dashboard = () => {
                     )}
                 </section>
 
-                {/* Voucher Inventory */}
-                <section className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
-                    <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        🎟️ Meus Vales
-                    </h3>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        {rewardDefinitions.vouchers.map(v => (
-                            <div
-                                key={v.id}
-                                style={{
-                                    flex: 1,
-                                    background: vouchers[v.id] > 0 ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255,255,255,0.03)',
-                                    border: vouchers[v.id] > 0 ? '1px solid var(--success)' : '1px solid rgba(255,255,255,0.1)',
-                                    borderRadius: '12px',
-                                    padding: '0.5rem',
-                                    textAlign: 'center'
-                                }}
-                            >
-                                <div style={{ fontSize: '1.25rem', marginBottom: '0.15rem' }}>{v.icon}</div>
-                                <div style={{
-                                    fontSize: '1.1rem',
-                                    fontWeight: 'bold',
-                                    color: vouchers[v.id] > 0 ? 'var(--success)' : 'var(--text-muted)'
-                                }}>
-                                    {vouchers[v.id] || 0}
-                                </div>
-                                <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)', marginTop: '0.1rem', marginBottom: '0.3rem' }}>
-                                    {v.name.replace('Vale-', '')}
-                                </div>
-                                {vouchers[v.id] > 0 && (
-                                    <button
-                                        onClick={() => useVoucher(v.id)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.25rem',
-                                            background: 'var(--success)',
-                                            border: 'none',
-                                            borderRadius: '6px',
-                                            color: '#000',
-                                            fontSize: '0.6rem',
-                                            fontWeight: 'bold',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        USAR
-                                    </button>
-                                )}
-                            </div>
-                        ))}
+                {/* ========== CAIXA DIÁRIA ========== */}
+                <section className="card" style={{
+                    padding: '1.25rem',
+                    marginBottom: '1.5rem',
+                    background: canClaimDaily
+                        ? 'linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(59, 130, 246, 0.1))'
+                        : dailyClaimed
+                            ? 'rgba(0, 255, 136, 0.05)'
+                            : 'var(--bg-card)',
+                    border: canClaimDaily
+                        ? '1px solid var(--success)'
+                        : dailyClaimed
+                            ? '1px solid rgba(0, 255, 136, 0.3)'
+                            : '1px solid rgba(255,255,255,0.1)',
+                    boxShadow: canClaimDaily ? '0 0 15px rgba(0, 255, 136, 0.2)' : 'none'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <h3 style={{ margin: 0, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>
+                            🎁 Caixa Diária
+                        </h3>
+                        <div style={{
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '12px',
+                            fontSize: '0.65rem',
+                            fontWeight: 'bold',
+                            background: canClaimDaily ? 'var(--success)' : dailyClaimed ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255,255,255,0.1)',
+                            color: canClaimDaily ? '#000' : dailyClaimed ? 'var(--success)' : 'var(--text-muted)'
+                        }}>
+                            {canClaimDaily ? '🎉 DISPONÍVEL!' : dailyClaimed ? '✓ Resgatada' : '🔒 Bloqueada'}
+                        </div>
                     </div>
+
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
+                        {canClaimDaily
+                            ? 'Dia 100% completo! Resgate seu vale agora!'
+                            : dailyClaimed
+                                ? 'Volte amanhã para uma nova recompensa!'
+                                : 'Complete 100% do dia (treino + dieta + água) para desbloquear'}
+                    </p>
+
+                    <button
+                        onClick={handleOpenDailyReward}
+                        disabled={!canClaimDaily}
+                        style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            background: canClaimDaily
+                                ? 'linear-gradient(135deg, var(--success), #3B82F6)'
+                                : 'rgba(255,255,255,0.1)',
+                            border: 'none',
+                            borderRadius: '10px',
+                            color: canClaimDaily ? '#fff' : 'var(--text-muted)',
+                            fontWeight: 'bold',
+                            fontSize: '0.9rem',
+                            cursor: canClaimDaily ? 'pointer' : 'not-allowed',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            animation: canClaimDaily ? 'pulse 2s infinite' : 'none'
+                        }}
+                    >
+                        <Gift size={18} />
+                        {canClaimDaily ? 'ABRIR CAIXA' : dailyClaimed ? 'Volte Amanhã' : 'Desbloquear'}
+                    </button>
+                </section>
+
+                {/* Link para Vouchers - Card Compacto */}
+                <section
+                    className="card"
+                    onClick={() => navigate('/vouchers')}
+                    style={{
+                        padding: '1rem',
+                        marginBottom: '1.5rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                    }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ fontSize: '1.5rem' }}>🎟️</div>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '600' }}>Meus Vales</h3>
+                            <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                {Object.values(vouchers).reduce((a, b) => a + b, 0)} vale(s) disponíve(is)
+                            </p>
+                        </div>
+                    </div>
+                    <ChevronRight size={20} color="var(--text-muted)" />
                 </section>
 
                 {/* Main Workout Card */}
@@ -801,6 +862,123 @@ const Dashboard = () => {
                 </section>
 
             </div>
+
+            {/* ========== DAILY REWARD MODAL ========== */}
+            {showDailyModal && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        background: dailyReward
+                            ? `radial-gradient(circle, ${rewardDefinitions.rarities[dailyReward.rarity].color}22 0%, rgba(0,0,0,0.95) 70%)`
+                            : 'rgba(0, 0, 0, 0.95)',
+                        backdropFilter: 'blur(15px)',
+                        zIndex: 9999,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexDirection: 'column'
+                    }}
+                    onClick={() => !isDailyRevealing && setShowDailyModal(false)}
+                >
+                    {/* Revealing Animation */}
+                    {isDailyRevealing && (
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{
+                                fontSize: '5rem',
+                                animation: 'shake 0.15s ease infinite'
+                            }}>
+                                🎁
+                            </div>
+                            <p style={{
+                                color: 'var(--success)',
+                                marginTop: '1rem',
+                                fontSize: '1.25rem',
+                                fontWeight: 'bold',
+                                animation: 'pulse 0.5s ease infinite'
+                            }}>
+                                Abrindo caixa...
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Reveal Result */}
+                    {!isDailyRevealing && dailyReward && (
+                        <div
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                background: `linear-gradient(145deg, ${rewardDefinitions.rarities[dailyReward.rarity].color}22, ${rewardDefinitions.rarities[dailyReward.rarity].color}44)`,
+                                border: `2px solid ${rewardDefinitions.rarities[dailyReward.rarity].color}`,
+                                borderRadius: '20px',
+                                padding: '2rem 1.5rem',
+                                textAlign: 'center',
+                                maxWidth: '300px',
+                                animation: 'epicReveal 0.5s ease',
+                                boxShadow: `0 0 40px ${rewardDefinitions.rarities[dailyReward.rarity].color}66`
+                            }}
+                        >
+                            {/* Rarity */}
+                            <div style={{
+                                fontSize: '0.75rem',
+                                fontWeight: 'bold',
+                                color: rewardDefinitions.rarities[dailyReward.rarity].color,
+                                textTransform: 'uppercase',
+                                letterSpacing: '3px',
+                                marginBottom: '0.75rem'
+                            }}>
+                                {rewardDefinitions.rarities[dailyReward.rarity].name}
+                            </div>
+
+                            {/* Icon */}
+                            <div style={{
+                                fontSize: '4rem',
+                                marginBottom: '0.75rem',
+                                filter: `drop-shadow(0 0 20px ${rewardDefinitions.rarities[dailyReward.rarity].color})`,
+                                animation: 'float 2s ease-in-out infinite'
+                            }}>
+                                {dailyReward.icon}
+                            </div>
+
+                            {/* Name */}
+                            <h2 style={{
+                                color: '#fff',
+                                margin: '0 0 0.5rem 0',
+                                fontSize: '1.3rem'
+                            }}>
+                                {dailyReward.name}
+                            </h2>
+
+                            {/* Description */}
+                            <p style={{
+                                color: 'rgba(255,255,255,0.7)',
+                                fontSize: '0.85rem',
+                                margin: '0 0 1.25rem 0'
+                            }}>
+                                {dailyReward.description}
+                            </p>
+
+                            {/* Collect Button */}
+                            <button
+                                onClick={() => setShowDailyModal(false)}
+                                style={{
+                                    background: `linear-gradient(135deg, ${rewardDefinitions.rarities[dailyReward.rarity].color}, ${rewardDefinitions.rarities[dailyReward.rarity].color}88)`,
+                                    border: 'none',
+                                    borderRadius: '10px',
+                                    padding: '0.75rem 2rem',
+                                    color: '#fff',
+                                    fontWeight: 'bold',
+                                    fontSize: '1rem',
+                                    cursor: 'pointer',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '1px'
+                                }}
+                            >
+                                ✓ Coletar Vale
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Loot Box Reward Modal - Outside container for proper centering */}
             {showRewardModal && (

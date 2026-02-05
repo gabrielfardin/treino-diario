@@ -4,7 +4,7 @@ import Dashboard from './pages/Dashboard';
 import Workout from './pages/Workout';
 import Nutrition from './pages/Nutrition';
 import History from './pages/History';
-
+import Vouchers from './pages/Vouchers';
 
 import HealthExam from './pages/HealthExam';
 import Settings from './pages/Settings';
@@ -17,7 +17,8 @@ function App() {
                     <Route index element={<Dashboard />} />
                     <Route path="workout" element={<Workout />} />
                     <Route path="nutrition" element={<Nutrition />} />
-                    <Route path="health" element={<HealthExam />} /> {/* New Route */}
+                    <Route path="vouchers" element={<Vouchers />} />
+                    <Route path="health" element={<HealthExam />} />
                     <Route path="history" element={<History />} />
                     <Route path="settings" element={<Settings />} />
                 </Route>
@@ -27,4 +28,3 @@ function App() {
 }
 
 export default App;
-

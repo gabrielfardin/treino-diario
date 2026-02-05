@@ -1,8 +1,9 @@
 import { useDailyTracking } from '../hooks/useDailyTracking';
 import { workoutPlans } from '../data/initialData';
-import { CheckCircle2, Circle, Info, Trophy, Play, ArrowRight, RotateCcw, Flame, Target, Youtube } from 'lucide-react';
+import { CheckCircle2, Circle, Info, Trophy, Play, ArrowRight, RotateCcw, Flame, Target, Youtube, Share2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import WorkoutShareModal from '../components/WorkoutShareModal';
 
 // Circular Progress Component
 const CircularProgress = ({ progress, size = 100, strokeWidth = 8 }) => {
@@ -40,13 +41,15 @@ const CircularProgress = ({ progress, size = 100, strokeWidth = 8 }) => {
 };
 
 const Workout = () => {
-    const { getLog, updateWorkout, getTodayDate, calculateStats, getSuggestedWorkout, setSuggestedOverride, markWorkoutCompleted } = useDailyTracking();
+    // Adicionado 'logs' aqui para o cálculo correto do streak
+    const { getLog, updateWorkout, getTodayDate, calculateStats, getSuggestedWorkout, setSuggestedOverride, markWorkoutCompleted, logs } = useDailyTracking();
     const today = getTodayDate();
     const log = getLog(today);
     const workoutLog = log.workout;
 
     const [showCompletionModal, setShowCompletionModal] = useState(false);
     const [celebrateId, setCelebrateId] = useState(null);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     const navigate = useNavigate();
 
@@ -97,6 +100,46 @@ const Workout = () => {
     }
 
     const nextPlanId = plan.id === 'A' ? 'B' : plan.id === 'B' ? 'C' : 'A';
+
+    // CORRIGIDO: Cálculo de Streak usando 'logs' do useDailyTracking e formatação de data correta
+    const calculateStreak = () => {
+        if (!logs) return 0;
+
+        // Obter datas onde o treino foi marcado como completo
+        // logs é { "YYYY-MM-DD": { workout: { completed: true } } }
+        const completedDates = Object.keys(logs).filter(date => {
+            return logs[date]?.workout?.completed;
+        }).sort();
+
+        if (completedDates.length === 0) return 0;
+
+        // Se hoje foi concluído, o streak deve incluir hoje.
+        const uniqueDates = new Set(completedDates);
+        if (workoutLog.completed) {
+            uniqueDates.add(today);
+        }
+
+        let streak = 0;
+        // Usar data baseada na string 'YYYY-MM-DD' para evitar fuso
+        // Criar data ao meio-dia para garantir estabilidade ao subtrair dias
+        let currentDateObj = new Date(today + 'T12:00:00');
+
+        while (true) {
+            const dateStr = currentDateObj.toLocaleDateString('en-CA'); // YYYY-MM-DD
+            if (uniqueDates.has(dateStr)) {
+                streak++;
+                // Voltar 1 dia (subtraindo 24h em ms seria arriscado com fuso, setDate é melhor)
+                currentDateObj.setDate(currentDateObj.getDate() - 1);
+            } else {
+                break;
+            }
+        }
+        return streak;
+    };
+
+    const currentStreak = calculateStreak();
+
+    // Restaurando variáveis que faltavam
     const doneCount = Object.values(workoutLog.exercises || {}).filter(Boolean).length;
     const totalCount = plan?.exercises.length || 0;
 
@@ -120,6 +163,24 @@ const Workout = () => {
                     Você finalizou o <strong style={{ color: workoutProgress === 100 ? 'var(--success)' : 'var(--warning)' }}>{plan?.name}</strong>
                 </p>
 
+                {/* Streak Badge */}
+                {currentStreak > 1 && (
+                    <div style={{
+                        margin: '-1rem auto 2rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 16px',
+                        background: 'rgba(255, 100, 50, 0.1)',
+                        border: '1px solid rgba(255, 100, 50, 0.3)',
+                        borderRadius: '20px',
+                        color: '#ff6432'
+                    }}>
+                        <Flame size={18} fill="#ff6432" />
+                        <span style={{ fontWeight: 'bold' }}>{currentStreak} Dias Seguidos!</span>
+                    </div>
+                )}
+
                 <div className="card" style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
                     <h3 style={{ margin: 0, marginBottom: '1rem', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Flame size={18} color="var(--accent-color)" /> Resumo
@@ -130,7 +191,23 @@ const Workout = () => {
                     </div>
                 </div>
 
-                <button onClick={() => navigate('/')} className="btn-primary" style={{ width: '100%', marginBottom: '1rem' }}>
+                <button
+                    onClick={() => setShowShareModal(true)}
+                    className="btn-primary"
+                    style={{
+                        width: '100%',
+                        marginBottom: '0.75rem',
+                        background: 'linear-gradient(135deg, #a855f7, #00ff88)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem'
+                    }}
+                >
+                    <Share2 size={20} /> Compartilhar no Instagram
+                </button>
+
+                <button onClick={() => navigate('/')} className="btn-ghost" style={{ width: '100%', marginBottom: '1rem' }}>
                     <ArrowRight size={20} /> Voltar ao Início
                 </button>
 
@@ -141,6 +218,16 @@ const Workout = () => {
                 >
                     <RotateCcw size={16} style={{ marginRight: '0.5rem' }} /> Refazer Treino (Resetar Hoje)
                 </button>
+
+                {/* Modal de Compartilhamento */}
+                <WorkoutShareModal
+                    isOpen={showShareModal}
+                    onClose={() => setShowShareModal(false)}
+                    workoutName={plan?.name || 'Treino'}
+                    date={new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    duration={null}
+                    streak={currentStreak}
+                />
             </div>
         );
     }
@@ -374,11 +461,31 @@ const Workout = () => {
                             <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-display)', letterSpacing: '0.05em' }}>
                                 TREINO CONCLUÍDO!
                             </h2>
-                            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '0.95rem' }}>
+                            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
                                 Você é uma máquina! 💪
                             </p>
 
-                            <div style={{ textAlign: 'left', marginBottom: '1.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                            <button
+                                onClick={() => {
+                                    setShowCompletionModal(false);
+                                    setShowShareModal(true);
+                                }}
+                                className="btn-primary"
+                                style={{
+                                    width: '100%',
+                                    marginBottom: '2rem',
+                                    background: 'linear-gradient(135deg, #a855f7, #00ff88)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem',
+                                    boxShadow: '0 4px 15px rgba(168, 85, 247, 0.4)'
+                                }}
+                            >
+                                <Share2 size={20} /> Compartilhar Conquista
+                            </button>
+
+                            <div style={{ textAlign: 'left', marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                                 Próximo passo:
                             </div>
 
@@ -431,6 +538,16 @@ const Workout = () => {
                     </div>
                 )
             }
+
+            {/* Modal de Compartilhamento (Active View) */}
+            <WorkoutShareModal
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
+                workoutName={plan?.name || 'Treino'}
+                date={new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                duration={null}
+                streak={currentStreak}
+            />
         </div>
     );
 };

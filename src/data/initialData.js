@@ -130,41 +130,76 @@ export const initialUserProfile = {
     }
   ];
 
-  // Reward System - Loot Box Prizes (organized by rarity)
+  // Reward System - Jackpot Vouchers (7 dias consecutivos) - TODOS SÃO VALES ACUMULÁVEIS
   export const rewardDefinitions = {
-    // Stackable Vouchers (accumulate in inventory)
+    // ALL Jackpot rewards are now stackable vouchers
     vouchers: [
+      // COMUM (89%)
       { id: 'vale-refri', name: 'Vale-Refri', icon: '🥤', description: 'Beber um refrigerante sem culpa', rarity: 'common' },
       { id: 'vale-fast-food', name: 'Vale-Fast Food', icon: '🍔', description: 'Comer um lanche fora da dieta', rarity: 'common' },
-      { id: 'vale-falta-ufes', name: 'Vale-Falta UFES', icon: '🎓', description: 'Faltar uma aula sem peso na consciência', rarity: 'epic' }
-    ],
-    // One-time Rewards (events)
-    rewards: [
-      // COMMON (60% chance) - Liberdades simples
-      { id: 'dormir-tarde', name: 'Dormir depois das 00h', icon: '🌙', description: 'Liberdade total de horário', rarity: 'rare' },
-      { id: 'nova-serie', name: 'Começar uma série nova', icon: '📺', description: 'Iniciar um novo vício sem culpa', rarity: 'common' },
-      { id: 'all-nighter', name: 'Ficar acordado a noite toda', icon: '🦉', description: 'O All-nighter épico liberado', rarity: 'epic' },
-      
-      // RARE (30% chance) - Grana moderada
-      { id: 'lazer-grana', name: 'Investimento Lazer R$50-100', icon: '🎮', description: 'Grana para diversão pura', rarity: 'rare' },
+      { id: 'nova-serie', name: 'Começar Série Nova', icon: '📺', description: 'Iniciar um novo vício sem culpa', rarity: 'common' },
+      // RARO (10%)
+      { id: 'dormir-tarde', name: 'Dormir Depois 00h', icon: '🌙', description: 'Liberdade total de horário', rarity: 'rare' },
+      { id: 'lazer-grana', name: 'Lazer R$50-100', icon: '🎮', description: 'Grana para diversão pura', rarity: 'rare' },
       { id: 'assinatura', name: 'Assinatura Premium', icon: '✨', description: 'Um mês de serviço pago (Spotify, YT, etc)', rarity: 'rare' },
-      
-      // EPIC (10% chance) - Prêmios valiosos
-      { id: 'saque-foco', name: 'Sacar R$100 Foco Radical', icon: '💰', description: 'Bônus financeiro pelo trabalho', rarity: 'epic' },
+      // ÉPICO (1%)
+      { id: 'vale-falta-ufes', name: 'Vale-Falta UFES', icon: '🎓', description: 'Faltar uma aula sem peso na consciência', rarity: 'epic' },
+      { id: 'all-nighter', name: 'All-Nighter Liberado', icon: '🦉', description: 'Ficar acordado a noite toda', rarity: 'epic' },
+      { id: 'saque-foco', name: 'Sacar R$100', icon: '💰', description: 'Bônus financeiro pelo trabalho', rarity: 'epic' },
       { id: 'wishlist', name: 'Item da Wishlist', icon: '🛒', description: 'Comprar algo que estava em espera', rarity: 'epic' }
     ],
     // Rarity definitions (for styling and probabilities)
     rarities: {
-      common: { name: 'Comum', color: '#9CA3AF', chance: 60 },
-      rare: { name: 'Raro', color: '#3B82F6', chance: 30 },
-      epic: { name: 'Épico', color: '#A855F7', chance: 10 }
+      common: { name: 'Comum', color: '#9CA3AF', chance: 89 },
+      rare: { name: 'Raro', color: '#3B82F6', chance: 10 },
+      epic: { name: 'Épico', color: '#A855F7', chance: 1 }
     }
   };
 
+  // Daily Lootbox Vouchers - Caixa Diária (100% do dia)
+  export const dailyVouchers = [
+    // COMUM (89%)
+    { id: 'cafe-especial', name: 'Café Especial', icon: '☕', description: 'Cappuccino ou café gourmet', rarity: 'common' },
+    { id: 'chocolate-amargo', name: 'Chocolate Amargo', icon: '🍫', description: '1-2 quadradinhos 70%+', rarity: 'common' },
+    { id: 'dia-zero-cardio', name: 'Dia Zero Cardio', icon: '🏃', description: 'Pular o cardio do treino', rarity: 'common' },
+    { id: 'episodio-bonus', name: 'Episódio Bônus', icon: '🎬', description: '1 episódio extra de série', rarity: 'common' },
+    // RARO (10%)
+    { id: 'sair-cedo-ufes', name: 'Sair Cedo UFES', icon: '🏫', description: 'Sair depois de uma aula só', rarity: 'rare' },
+    { id: 'docinho-fit', name: 'Docinho Fit', icon: '🧁', description: 'Brigadeiro fit, brownie proteico', rarity: 'rare' },
+    { id: 'sorvete-zero', name: 'Sorvete Zero', icon: '🍦', description: 'Uma bola de sorvete sem açúcar', rarity: 'rare' },
+    { id: 'mini-compra', name: 'Mini Compra R$20', icon: '🛒', description: 'Algo pequeno até R$20', rarity: 'rare' },
+    { id: 'maratona-liberada', name: 'Maratona Liberada', icon: '📺', description: '3+ episódios de série', rarity: 'rare' },
+    { id: 'lanche-fora-dieta', name: 'Lanche Fora Dieta', icon: '🍕', description: 'Um lanche fora (sem fast food)', rarity: 'rare' },
+    // ÉPICO (1%)
+    { id: 'acai-mini', name: 'Açaí Mini', icon: '🥤', description: 'Açaí pequeno (sem xarope)', rarity: 'epic' },
+    { id: 'refeicao-acucar', name: 'Refeição COM Açúcar', icon: '🍰', description: 'Uma refeição completa com açúcar!', rarity: 'epic' }
+  ];
+
   // Initial voucher inventory (all starting at 0)
   export const initialVoucherInventory = {
+    // Jackpot vouchers (10 vales)
     'vale-refri': 0,
+    'vale-fast-food': 0,
+    'nova-serie': 0,
+    'dormir-tarde': 0,
+    'lazer-grana': 0,
+    'assinatura': 0,
     'vale-falta-ufes': 0,
-    'vale-fast-food': 0
+    'all-nighter': 0,
+    'saque-foco': 0,
+    'wishlist': 0,
+    // Daily vouchers (12 vales)
+    'cafe-especial': 0,
+    'chocolate-amargo': 0,
+    'dia-zero-cardio': 0,
+    'episodio-bonus': 0,
+    'sair-cedo-ufes': 0,
+    'docinho-fit': 0,
+    'sorvete-zero': 0,
+    'mini-compra': 0,
+    'maratona-liberada': 0,
+    'lanche-fora-dieta': 0,
+    'acai-mini': 0,
+    'refeicao-acucar': 0
   };
 
