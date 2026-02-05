@@ -212,7 +212,7 @@ const History = () => {
 
                                     {/* Indicators */}
                                     <div style={{ display: 'flex', gap: '2px', marginTop: '2px', minHeight: '6px' }}>
-                                        {/* Workout */}
+                                        {/* Workout indicator */}
                                         {completedWorkoutsCount > 0 ? (
                                             Array.from({ length: Math.min(2, completedWorkoutsCount) }).map((_, i) => (
                                                 <div key={`w-${i}`} style={{
@@ -227,11 +227,11 @@ const History = () => {
                                             }} />
                                         ) : null}
 
-                                        {/* Diet */}
+                                        {/* Diet indicator - green if 100%, yellow if partial */}
                                         {dietProgress > 0 && (
                                             <div style={{
                                                 width: '5px', height: '5px', borderRadius: '50%',
-                                                background: dietProgress >= 100 ? 'var(--accent-color)' : 'rgba(255, 7, 58, 0.5)'
+                                                background: dietProgress >= 100 ? 'var(--accent-color)' : 'var(--warning)'
                                             }} />
                                         )}
                                     </div>

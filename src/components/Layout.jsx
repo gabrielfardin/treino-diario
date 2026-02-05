@@ -3,7 +3,7 @@ import { Dumbbell, Utensils, Calendar, Home, Flame, Activity, Settings } from 'l
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
-import NotificationManager from './NotificationManager';
+
 
 const Layout = () => {
   const location = useLocation();
@@ -39,7 +39,7 @@ const Layout = () => {
 
   return (
     <div className="layout">
-      <NotificationManager />
+
       {/* Premium Header */}
       <header className="header-clock">
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

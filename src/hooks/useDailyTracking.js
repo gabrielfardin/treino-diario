@@ -337,11 +337,20 @@ export const useDailyTracking = () => {
   };
 
   // Get the current streak of consecutive perfect days
+  // Starts from yesterday and only counts today if it's already perfect
   const getCurrentStreak = () => {
     const today = new Date();
+    const todayStr = today.toLocaleDateString('en-CA');
     let streak = 0;
     
-    for (let i = 0; i < 30; i++) { // Check up to 30 days back
+    // First, check if today is already perfect - if so, count it
+    const isTodayPerfect = isDayPerfect(todayStr);
+    if (isTodayPerfect) {
+      streak++;
+    }
+    
+    // Then count consecutive perfect days going backwards from yesterday
+    for (let i = 1; i < 30; i++) { // Start from 1 (yesterday), not 0 (today)
       const d = new Date(today);
       d.setDate(today.getDate() - i);
       const dateStr = d.toLocaleDateString('en-CA');
@@ -349,7 +358,10 @@ export const useDailyTracking = () => {
       if (isDayPerfect(dateStr)) {
         streak++;
       } else {
-        break; // Streak broken
+        // Only break if today was NOT perfect, or if we've already counted at least one past day
+        // This means: if today is not done yet, we start counting from yesterday
+        // If yesterday also wasn't perfect, then streak is 0
+        break;
       }
     }
     return streak;
