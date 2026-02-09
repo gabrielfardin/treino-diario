@@ -14,6 +14,8 @@ export class WorkoutArtGenerator {
         // Temas agora são mais "Hardcore"
         this.colorTheme = options.colorTheme || 'purple';
         this.streak = options.streak || 0;
+        // OTIMIZAÇÃO: Preview usa baixa resolução
+        this.isPreview = options.isPreview || false;
     }
 
     getColorPalette() {
@@ -50,6 +52,11 @@ export class WorkoutArtGenerator {
 
     // Textura de "Concreto/Metal"
     drawGrittyTexture(ctx, width, height, opacity = 0.15) {
+        // OTIMIZAÇÃO: Pula textura pesada no preview
+        if (this.isPreview) {
+            return; // Textura desabilitada para preview rápido
+        }
+
         ctx.save();
         ctx.globalCompositeOperation = 'overlay';
         ctx.globalAlpha = opacity;
@@ -161,6 +168,7 @@ export class WorkoutArtGenerator {
     }
 
     async generateSticker() {
+        // Resolução mantida normal, apenas texturas são simplificadas
         const width = 600;
         const height = this.musicName ? 350 : 280;
         const canvas = document.createElement('canvas');
@@ -273,6 +281,7 @@ export class WorkoutArtGenerator {
     }
 
     async generateFullStory() {
+        // Resolução mantida normal, apenas texturas são simplificadas
         const width = 1080;
         const height = 1920;
         const canvas = document.createElement('canvas');

@@ -1,4 +1,5 @@
 import BackupSettings from '../components/BackupSettings';
+import DebugSettings from '../components/DebugSettings';
 import { Settings as SettingsIcon } from 'lucide-react';
 
 const Settings = () => {
@@ -12,6 +13,8 @@ const Settings = () => {
             </header>
 
             <BackupSettings />
+
+            <DebugSettings />
 
             {/* Future settings can go here */}
         </div>

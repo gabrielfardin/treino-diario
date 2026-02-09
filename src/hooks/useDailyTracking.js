@@ -450,18 +450,57 @@ export const useDailyTracking = () => {
     localStorage.setItem(DAILY_REWARD_KEY, JSON.stringify(dailyRewardData));
   }, [dailyRewardData]);
 
-  // Check if today is 100% complete AND not yet claimed
+  // Get all pending daily rewards (perfect days that weren't claimed)
+  const getPendingDailyRewards = () => {
+    const today = getTodayDate();
+    const pending = [];
+    
+    // Check last 30 days (excluding today, which uses normal logic)
+    for (let i = 1; i <= 30; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toLocaleDateString('en-CA');
+      
+      // Check if this day was perfect AND not claimed
+      if (isDayPerfect(dateStr) && !dailyRewardData.claimedDates.includes(dateStr)) {
+        pending.push(dateStr);
+      }
+    }
+    
+    // Return sorted oldest first (so user claims in order)
+    return pending.sort((a, b) => new Date(a) - new Date(b));
+  };
+
+  // Check if today is 100% complete AND not yet claimed, OR if there are pending rewards
   const canClaimDailyReward = () => {
     const today = getTodayDate();
     const isTodayPerfect = isDayPerfect(today);
     const alreadyClaimed = dailyRewardData.claimedDates.includes(today);
-    return isTodayPerfect && !alreadyClaimed;
+    const hasTodayReward = isTodayPerfect && !alreadyClaimed;
+    
+    // Also check for pending rewards from previous days
+    const pendingRewards = getPendingDailyRewards();
+    
+    return hasTodayReward || pendingRewards.length > 0;
   };
 
   // Check if already claimed today (for UI)
   const hasDailyRewardBeenClaimed = () => {
     const today = getTodayDate();
     return dailyRewardData.claimedDates.includes(today);
+  };
+
+  // Get the next reward date to claim (oldest pending or today)
+  const getNextRewardDate = () => {
+    const pending = getPendingDailyRewards();
+    if (pending.length > 0) {
+      return pending[0]; // Oldest pending
+    }
+    const today = getTodayDate();
+    if (isDayPerfect(today) && !dailyRewardData.claimedDates.includes(today)) {
+      return today;
+    }
+    return null;
   };
 
   // Roll a daily reward based on rarity chances
@@ -486,11 +525,14 @@ export const useDailyTracking = () => {
     return { ...reward, rolledRarity: selectedRarity };
   };
 
-  // Claim daily reward
+  // Claim daily reward (uses next pending date or today)
   const claimDailyReward = () => {
     if (!canClaimDailyReward()) return null;
     
-    const today = getTodayDate();
+    // Get the date to claim (oldest pending or today)
+    const dateToProcess = getNextRewardDate();
+    if (!dateToProcess) return null;
+    
     const reward = rollDailyReward();
     
     // Add to voucher inventory
@@ -498,15 +540,15 @@ export const useDailyTracking = () => {
     
     // Record the claim
     setDailyRewardData(prev => ({
-      claimedDates: [...prev.claimedDates, today],
+      claimedDates: [...prev.claimedDates, dateToProcess],
       rewardHistory: [...prev.rewardHistory, {
         ...reward,
         claimedAt: new Date().toISOString(),
-        date: today
+        date: dateToProcess
       }]
     }));
     
-    return reward;
+    return { ...reward, claimedDate: dateToProcess };
   };
 
   /* Health Exam Logic */
@@ -577,6 +619,8 @@ export const useDailyTracking = () => {
     canClaimDailyReward,
     hasDailyRewardBeenClaimed,
     claimDailyReward,
+    getPendingDailyRewards,
+    getNextRewardDate,
     isDayPerfect,
     // Health Exams
     healthExams,

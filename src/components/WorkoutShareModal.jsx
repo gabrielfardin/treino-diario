@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, Download, Image, Sparkles, Music, Share2, Plus } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Download, Image, Sparkles, Music, Share2, Plus, Copy } from 'lucide-react';
 import { WorkoutArtGenerator } from '../utils/WorkoutArtGenerator';
 
 const COLOR_THEMES = [
@@ -23,9 +23,13 @@ const WorkoutShareModal = ({ isOpen, onClose, workoutName: defaultName, date, du
 
     const [previewUrl, setPreviewUrl] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+    const [copyFeedback, setCopyFeedback] = useState(false);
 
     // Ref para o input de cor invisível
     const colorInputRef = useRef(null);
+
+    // OTIMIZAÇÃO: Debounce timer
+    const debounceTimerRef = useRef(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -34,11 +38,33 @@ const WorkoutShareModal = ({ isOpen, onClose, workoutName: defaultName, date, du
         }
     }, [isOpen, defaultName]);
 
+    // OTIMIZAÇÃO: Debounce para inputs de texto
+    useEffect(() => {
+        if (!isOpen) return;
+
+        // Limpa timer anterior
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+
+        // Aguarda 300ms após última mudança para regenerar
+        debounceTimerRef.current = setTimeout(() => {
+            generatePreview();
+        }, 300);
+
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+        };
+    }, [workoutName, musicName, artistName]);
+
+    // Mudança de cor/modo é instantânea (sem debounce)
     useEffect(() => {
         if (isOpen) {
             generatePreview();
         }
-    }, [mode, workoutName, musicName, artistName, colorTheme]);
+    }, [mode, colorTheme]);
 
     const generatePreview = async () => {
         try {
@@ -50,7 +76,8 @@ const WorkoutShareModal = ({ isOpen, onClose, workoutName: defaultName, date, du
                 artistName: artistName.trim(),
                 mode: mode,
                 colorTheme: colorTheme,
-                streak: streak
+                streak: streak,
+                isPreview: true // OTIMIZAÇÃO: Preview em baixa resolução
             });
             const url = await generator.toDataURL();
             setPreviewUrl(url);
@@ -70,12 +97,46 @@ const WorkoutShareModal = ({ isOpen, onClose, workoutName: defaultName, date, du
                 artistName: artistName.trim(),
                 mode: mode,
                 colorTheme: colorTheme,
-                streak: streak
+                streak: streak,
+                isPreview: false // OTIMIZAÇÃO: Download em alta resolução
             });
             const filename = mode === 'sticker' ? 'treino-sticker.png' : 'treino-story.png';
             await generator.download(filename);
         } catch (error) {
             console.error('Erro ao baixar:', error);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const handleCopyImage = async () => {
+        setIsGenerating(true);
+        try {
+            const generator = new WorkoutArtGenerator({
+                workoutName: workoutName || 'Meu Treino',
+                date: date || new Date().toLocaleDateString('pt-BR'),
+                duration: duration,
+                musicName: musicName.trim(),
+                artistName: artistName.trim(),
+                mode: mode,
+                colorTheme: colorTheme,
+                streak: streak,
+                isPreview: false // Alta resolução para copiar
+            });
+
+            const canvas = await generator.generate();
+            const blob = await generator.toBlob(canvas);
+
+            await navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': blob })
+            ]);
+
+            // Feedback visual
+            setCopyFeedback(true);
+            setTimeout(() => setCopyFeedback(false), 2000);
+        } catch (error) {
+            console.error('Erro ao copiar:', error);
+            alert('Erro ao copiar imagem. Seu navegador pode não suportar essa funcionalidade.');
         } finally {
             setIsGenerating(false);
         }
@@ -299,26 +360,47 @@ const WorkoutShareModal = ({ isOpen, onClose, workoutName: defaultName, date, du
                             </div>
                         </div>
 
-                        {/* Footer Action (Inside Controls for Mobile) */}
-                        <button
-                            className="touch-target"
-                            onClick={handleDownload}
-                            disabled={isGenerating}
-                            style={{
-                                width: '100%', padding: '1rem',
-                                background: activeColorHex,
-                                color: '#fff',
-                                borderRadius: '16px',
-                                fontSize: '1rem', fontWeight: 700,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
-                                boxShadow: `0 8px 30px ${activeColorHex}50`,
-                                opacity: isGenerating ? 0.7 : 1,
-                                marginTop: '0.5rem'
-                            }}
-                        >
-                            <Download size={22} />
-                            {isGenerating ? 'Gerando...' : 'Baixar Imagem'}
-                        </button>
+                        {/* Action Buttons */}
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                            <button
+                                className="touch-target"
+                                onClick={handleCopyImage}
+                                disabled={isGenerating}
+                                style={{
+                                    flex: 1, padding: '1rem',
+                                    background: copyFeedback ? '#22c55e' : '#2a2a2a',
+                                    color: '#fff',
+                                    border: `2px solid ${copyFeedback ? '#22c55e' : activeColorHex}`,
+                                    borderRadius: '16px',
+                                    fontSize: '1rem', fontWeight: 700,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+                                    opacity: isGenerating ? 0.7 : 1,
+                                    transition: 'all 0.3s'
+                                }}
+                            >
+                                <Copy size={22} />
+                                {copyFeedback ? 'Copiado!' : 'Copiar'}
+                            </button>
+
+                            <button
+                                className="touch-target"
+                                onClick={handleDownload}
+                                disabled={isGenerating}
+                                style={{
+                                    flex: 1, padding: '1rem',
+                                    background: activeColorHex,
+                                    color: '#fff',
+                                    borderRadius: '16px',
+                                    fontSize: '1rem', fontWeight: 700,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+                                    boxShadow: `0 8px 30px ${activeColorHex}50`,
+                                    opacity: isGenerating ? 0.7 : 1
+                                }}
+                            >
+                                <Download size={22} />
+                                {isGenerating ? 'Gerando...' : 'Baixar'}
+                            </button>
+                        </div>
                     </div>
 
                 </div>

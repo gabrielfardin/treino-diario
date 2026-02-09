@@ -7,6 +7,12 @@ const BackupSettings = () => {
     const fileInputRef = useRef(null);
     const [importStatus, setImportStatus] = useState(null); // 'success' | 'error' | null
 
+    // Última data de backup
+    const [lastBackupDate, setLastBackupDate] = useState(() => {
+        const saved = localStorage.getItem('lastBackupDate');
+        return saved || null;
+    });
+
     const handleExport = () => {
         const data = {
             logs,
@@ -31,6 +37,11 @@ const BackupSettings = () => {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+
+        // Salvar data do último backup
+        const now = new Date().toISOString();
+        localStorage.setItem('lastBackupDate', now);
+        setLastBackupDate(now);
     };
 
     const handleImportClick = () => {
@@ -111,6 +122,29 @@ const BackupSettings = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Última data de backup */}
+            {lastBackupDate && (
+                <div style={{
+                    marginTop: '1rem',
+                    padding: '0.75rem',
+                    background: 'rgba(168, 85, 247, 0.1)',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    color: 'var(--text-secondary)',
+                    textAlign: 'center'
+                }}>
+                    📅 Último backup: <strong style={{ color: 'var(--accent-color)' }}>
+                        {new Date(lastBackupDate).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}
+                    </strong>
+                </div>
+            )}
 
             {importStatus === 'success' && (
                 <div style={{

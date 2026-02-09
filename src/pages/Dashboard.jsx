@@ -43,7 +43,7 @@ const CircularProgress = ({ progress, size = 80, strokeWidth = 5, color = 'var(-
 };
 
 const Dashboard = () => {
-    const { logs, getSuggestedWorkout, setSuggestedOverride, getTodayDate, updateWorkout, calculateStats, vouchers, useVoucher, addVoucher, getCurrentStreak, canClaimLootbox, claimLootbox, lootboxData, canClaimDailyReward, hasDailyRewardBeenClaimed, claimDailyReward, dailyRewardData, isDayPerfect } = useDailyTracking();
+    const { logs, getSuggestedWorkout, setSuggestedOverride, getTodayDate, updateWorkout, calculateStats, vouchers, useVoucher, addVoucher, getCurrentStreak, canClaimLootbox, claimLootbox, lootboxData, canClaimDailyReward, hasDailyRewardBeenClaimed, claimDailyReward, dailyRewardData, isDayPerfect, getPendingDailyRewards, getNextRewardDate } = useDailyTracking();
     const navigate = useNavigate();
     const profile = initialUserProfile;
     const today = getTodayDate();
@@ -93,6 +93,9 @@ const Dashboard = () => {
     const [isDailyRevealing, setIsDailyRevealing] = useState(false);
     const canClaimDaily = canClaimDailyReward();
     const dailyClaimed = hasDailyRewardBeenClaimed();
+    const pendingRewards = getPendingDailyRewards();
+    const nextRewardDate = getNextRewardDate();
+    const totalPendingCount = pendingRewards.length + (isDayPerfect(today) && !dailyClaimed ? 1 : 0);
 
     // Handler for opening daily reward
     const handleOpenDailyReward = () => {
@@ -407,29 +410,31 @@ const Dashboard = () => {
                                             height: isTarget ? '40px' : '32px',
                                             borderRadius: '50%',
                                             background: isPast && !isTarget
-                                                ? '#1a1a1a' // Past
+                                                ? 'linear-gradient(135deg, #22c55e, #16a34a)' // Past (verde sucesso)
                                                 : isActive
                                                     ? '#ff4d4d' // Active (Red)
                                                     : isTarget
                                                         ? 'linear-gradient(135deg, #FFD700, #FFA500)' // Target
                                                         : '#1a1a1a', // Future
-                                            border: isActive ? '3px solid rgba(255, 77, 77, 0.3)' : isTarget ? 'none' : '2px solid rgba(255,255,255,0.1)',
+                                            border: isActive ? '3px solid rgba(255, 77, 77, 0.3)' : isTarget ? 'none' : isPast && !isTarget ? '2px solid rgba(34, 197, 94, 0.3)' : '2px solid rgba(255,255,255,0.1)',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             fontSize: isTarget ? '1.2rem' : '0.9rem',
                                             fontWeight: 'bold',
-                                            color: isPast && !isTarget ? 'var(--text-muted)' : '#fff',
+                                            color: '#fff',
                                             boxShadow: isActive
                                                 ? '0 0 20px rgba(255, 77, 77, 0.6)'
-                                                : isTarget
-                                                    ? '0 0 25px rgba(255, 215, 0, 0.6)'
-                                                    : 'none',
+                                                : isPast && !isTarget
+                                                    ? '0 0 15px rgba(34, 197, 94, 0.4)'
+                                                    : isTarget
+                                                        ? '0 0 25px rgba(255, 215, 0, 0.6)'
+                                                        : 'none',
                                             transform: isActive || isTargetActive ? 'scale(1.1)' : 'scale(1)',
                                             transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                                             animation: isActive ? 'pulse-slow 2s infinite' : isTargetActive ? 'shake 2s infinite' : 'none'
                                         }}>
-                                            {isTarget ? '🎁' : dayNum}
+                                            {isTarget ? '🎁' : isPast && !isTarget ? '✓' : dayNum}
                                         </div>
                                     </div>
                                 );
@@ -482,34 +487,6 @@ const Dashboard = () => {
                         )}
                     </div>
 
-                    {/* DEBUG: Reset Today Button */}
-                    <button
-                        onClick={() => {
-                            if (window.confirm('RESETAR todo o histórico de hoje? (Debug)')) {
-                                updateWorkout(today, 'A', '__reset__', false);
-                                // Also clear 'B' and 'C' just in case? 
-                                // The __reset__ logic clears the DAY log's completedPlans.
-                                // It depends on planId passed but inside __reset__ block I used ...dayLog.workout which has planId. 
-                                // Actually, my __reset__ implementation sets planId: planId.
-                                // But it wipes completedPlans: [].
-                                // So calling it once is enough.
-                                alert('Dia resetado!');
-                            }
-                        }}
-                        style={{
-                            marginTop: '1rem',
-                            width: '100%',
-                            padding: '0.25rem',
-                            background: 'rgba(255, 0, 0, 0.1)',
-                            border: '1px dashed rgba(255, 0, 0, 0.3)',
-                            borderRadius: '4px',
-                            color: 'rgba(255, 0, 0, 0.5)',
-                            fontSize: '0.6rem',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        [DEBUG] Resetar Dia de Hoje
-                    </button>
 
                     {/* History Toggle */}
                     {lootboxData.rewardHistory.length > 0 && (
@@ -573,39 +550,62 @@ const Dashboard = () => {
                     marginBottom: '1.5rem',
                     background: canClaimDaily
                         ? 'linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(59, 130, 246, 0.1))'
-                        : dailyClaimed
+                        : dailyClaimed && pendingRewards.length === 0
                             ? 'rgba(0, 255, 136, 0.05)'
                             : 'var(--bg-card)',
                     border: canClaimDaily
                         ? '1px solid var(--success)'
-                        : dailyClaimed
+                        : dailyClaimed && pendingRewards.length === 0
                             ? '1px solid rgba(0, 255, 136, 0.3)'
                             : '1px solid rgba(255,255,255,0.1)',
                     boxShadow: canClaimDaily ? '0 0 15px rgba(0, 255, 136, 0.2)' : 'none'
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                         <h3 style={{ margin: 0, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>
-                            🎁 Caixa Diária
+                            🎁 Caixa Diária {totalPendingCount > 1 && <span style={{ color: 'var(--success)' }}>({totalPendingCount})</span>}
                         </h3>
                         <div style={{
                             padding: '0.2rem 0.6rem',
                             borderRadius: '12px',
                             fontSize: '0.65rem',
                             fontWeight: 'bold',
-                            background: canClaimDaily ? 'var(--success)' : dailyClaimed ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255,255,255,0.1)',
-                            color: canClaimDaily ? '#000' : dailyClaimed ? 'var(--success)' : 'var(--text-muted)'
+                            background: canClaimDaily ? 'var(--success)' : dailyClaimed && pendingRewards.length === 0 ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255,255,255,0.1)',
+                            color: canClaimDaily ? '#000' : dailyClaimed && pendingRewards.length === 0 ? 'var(--success)' : 'var(--text-muted)'
                         }}>
-                            {canClaimDaily ? '🎉 DISPONÍVEL!' : dailyClaimed ? '✓ Resgatada' : '🔒 Bloqueada'}
+                            {canClaimDaily
+                                ? (pendingRewards.length > 0
+                                    ? `🎉 ${totalPendingCount} CAIXA${totalPendingCount > 1 ? 'S' : ''} DISPONÍVE${totalPendingCount > 1 ? 'IS' : 'L'}!`
+                                    : '🎉 DISPONÍVEL!')
+                                : dailyClaimed && pendingRewards.length === 0
+                                    ? '✓ Resgatada'
+                                    : '🔒 Bloqueada'}
                         </div>
                     </div>
 
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
                         {canClaimDaily
-                            ? 'Dia 100% completo! Resgate seu vale agora!'
-                            : dailyClaimed
+                            ? (pendingRewards.length > 0
+                                ? `Você tem ${totalPendingCount} caixa${totalPendingCount > 1 ? 's' : ''} para abrir! 🎁`
+                                : 'Dia 100% completo! Resgate seu vale agora!')
+                            : dailyClaimed && pendingRewards.length === 0
                                 ? 'Volte amanhã para uma nova recompensa!'
                                 : 'Complete 100% do dia (treino + dieta + água) para desbloquear'}
                     </p>
+
+                    {/* Show which date is being claimed if it's a pending reward */}
+                    {canClaimDaily && nextRewardDate && nextRewardDate !== today && (
+                        <div style={{
+                            marginBottom: '0.75rem',
+                            padding: '0.5rem',
+                            background: 'rgba(255, 215, 0, 0.1)',
+                            borderRadius: '8px',
+                            fontSize: '0.75rem',
+                            color: '#FFD700',
+                            textAlign: 'center'
+                        }}>
+                            📅 Recuperando caixa de {new Date(nextRewardDate + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })}
+                        </div>
+                    )}
 
                     <button
                         onClick={handleOpenDailyReward}
@@ -630,7 +630,11 @@ const Dashboard = () => {
                         }}
                     >
                         <Gift size={18} />
-                        {canClaimDaily ? 'ABRIR CAIXA' : dailyClaimed ? 'Volte Amanhã' : 'Desbloquear'}
+                        {canClaimDaily
+                            ? (totalPendingCount > 1 ? `ABRIR CAIXA (${totalPendingCount} restantes)` : 'ABRIR CAIXA')
+                            : dailyClaimed && pendingRewards.length === 0
+                                ? 'Volte Amanhã'
+                                : 'Desbloquear'}
                     </button>
                 </section>
 

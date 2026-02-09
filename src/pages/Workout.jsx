@@ -444,27 +444,62 @@ const Workout = () => {
             {
                 showCompletionModal && (
                     <div className="modal-overlay fade-in-scale" onClick={() => setShowCompletionModal(false)}>
-                        <div className="card card-accent" onClick={(e) => e.stopPropagation()} style={{
-                            width: '100%', maxWidth: '380px',
+                        <div className="card" onClick={(e) => e.stopPropagation()} style={{
+                            width: '100%', maxWidth: '420px',
                             textAlign: 'center',
-                            padding: '2rem'
+                            padding: '2rem',
+                            background: '#121212',
+                            maxHeight: '90vh',
+                            overflowY: 'auto'
                         }}>
+                            {/* Trophy Icon - Same as completed view */}
                             <div className="celebrate" style={{
-                                background: 'linear-gradient(135deg, var(--accent-color), #FF4D6D)',
-                                width: '80px', height: '80px', borderRadius: '50%',
+                                background: workoutProgress === 100 ? 'linear-gradient(135deg, var(--success), #00AA55)' : 'linear-gradient(135deg, var(--warning), #F59E0B)',
+                                width: '100px', height: '100px', borderRadius: '50%',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 margin: '0 auto 1.5rem',
-                                boxShadow: '0 0 30px var(--accent-glow)'
+                                boxShadow: workoutProgress === 100 ? '0 0 40px var(--success-glow)' : '0 0 40px rgba(245, 158, 11, 0.4)'
                             }}>
-                                <Trophy size={40} color="#fff" />
+                                <Trophy size={48} color="#fff" />
                             </div>
-                            <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-display)', letterSpacing: '0.05em' }}>
-                                TREINO CONCLUÍDO!
-                            </h2>
-                            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
-                                Você é uma máquina! 💪
+
+                            <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
+                                {workoutProgress === 100 ? 'TREINO COMPLETO!' : 'TREINO FINALIZADO!'}
+                            </h1>
+                            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '1rem' }}>
+                                Você finalizou o <strong style={{ color: workoutProgress === 100 ? 'var(--success)' : 'var(--warning)' }}>{plan?.name}</strong>
                             </p>
 
+                            {/* Streak Badge - Same as completed view */}
+                            {currentStreak > 0 && (
+                                <div style={{
+                                    margin: '-0.5rem auto 1.5rem',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '8px 16px',
+                                    background: 'rgba(255, 100, 50, 0.1)',
+                                    border: '1px solid rgba(255, 100, 50, 0.3)',
+                                    borderRadius: '20px',
+                                    color: '#ff6432'
+                                }}>
+                                    <Flame size={18} fill="#ff6432" />
+                                    <span style={{ fontWeight: 'bold' }}>{currentStreak} Dia{currentStreak > 1 ? 's' : ''} Seguido{currentStreak > 1 ? 's' : ''}!</span>
+                                </div>
+                            )}
+
+                            {/* Summary Card - Same as completed view */}
+                            <div className="card" style={{ textAlign: 'left', marginBottom: '1.5rem', background: '#1a1a1a' }}>
+                                <h3 style={{ margin: 0, marginBottom: '1rem', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Flame size={18} color="var(--accent-color)" /> Resumo
+                                </h3>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--bg-primary)', borderRadius: '12px' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Exercícios Concluídos</span>
+                                    <span style={{ fontWeight: 'bold', color: workoutProgress === 100 ? 'var(--success)' : 'var(--warning)' }}>{doneCount} / {totalCount}</span>
+                                </div>
+                            </div>
+
+                            {/* Share Button - Primary action now */}
                             <button
                                 onClick={() => {
                                     setShowCompletionModal(false);
@@ -473,7 +508,7 @@ const Workout = () => {
                                 className="btn-primary"
                                 style={{
                                     width: '100%',
-                                    marginBottom: '2rem',
+                                    marginBottom: '0.75rem',
                                     background: 'linear-gradient(135deg, #a855f7, #00ff88)',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -482,56 +517,25 @@ const Workout = () => {
                                     boxShadow: '0 4px 15px rgba(168, 85, 247, 0.4)'
                                 }}
                             >
-                                <Share2 size={20} /> Compartilhar Conquista
+                                <Share2 size={20} /> Compartilhar no Instagram
                             </button>
 
-                            <div style={{ textAlign: 'left', marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                                Próximo passo:
-                            </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {/* Next Step Options */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
                                 <button
                                     onClick={() => confirmNextStep('next')}
-                                    className="btn-primary"
-                                    style={{
-                                        padding: '1rem',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center'
-                                    }}
+                                    className="btn-ghost"
+                                    style={{ padding: '0.875rem', width: '100%' }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <div style={{
-                                            width: '36px', height: '36px', borderRadius: '10px',
-                                            background: 'rgba(255,255,255,0.2)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontWeight: 'bold', fontSize: '1rem'
-                                        }}>
-                                            {nextPlanId}
-                                        </div>
-                                        <div style={{ textAlign: 'left' }}>
-                                            <span style={{ display: 'block', fontWeight: 'bold' }}>Treino {nextPlanId} Amanhã</span>
-                                            <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Sequência recomendada</span>
-                                        </div>
-                                    </div>
-                                    <ArrowRight size={20} />
+                                    <ArrowRight size={18} style={{ marginRight: '0.5rem' }} /> Voltar ao Início
                                 </button>
 
                                 <button
                                     onClick={() => confirmNextStep('repeat')}
                                     className="btn-ghost"
-                                    style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                    style={{ padding: '0.875rem', width: '100%', fontSize: '0.9rem', color: 'var(--text-muted)' }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <div style={{
-                                            width: '36px', height: '36px', borderRadius: '10px',
-                                            background: 'rgba(255, 255, 255, 0.05)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                        }}>
-                                            <RotateCcw size={16} />
-                                        </div>
-                                        <span>Repetir Treino {plan.id}</span>
-                                    </div>
+                                    <RotateCcw size={16} style={{ marginRight: '0.5rem' }} /> Repetir Treino {plan.id}
                                 </button>
                             </div>
                         </div>

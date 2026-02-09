@@ -2,12 +2,15 @@ import { Outlet } from 'react-router-dom';
 import { Dumbbell, Utensils, Calendar, Home, Flame, Activity, Settings } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import BackupReminderModal from './BackupReminderModal';
+import { useDailyTracking } from '../hooks/useDailyTracking';
 
 
 
 const Layout = () => {
   const location = useLocation();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { logs, vouchers, healthExams, lootboxData } = useDailyTracking();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -36,6 +39,36 @@ const Layout = () => {
     { path: '/health', icon: Activity, label: 'Saúde' }, // New Tab
     { path: '/history', icon: Calendar, label: 'Histórico' },
   ];
+
+  const handleBackupNow = () => {
+    const data = {
+      logs,
+      vouchers,
+      healthExams,
+      lootboxData,
+      userProfile: JSON.parse(localStorage.getItem('initialUserProfile') || '{}'),
+      workoutHistory: JSON.parse(localStorage.getItem('workout_history') || '{}'),
+      meta: {
+        backupDate: new Date().toISOString(),
+        version: 1
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const dateStr = new Date().toISOString().split('T')[0];
+    link.download = `backup-treino-diario-${dateStr}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    // Salvar data do último backup
+    const now = new Date().toISOString();
+    localStorage.setItem('lastBackupDate', now);
+  };
 
   return (
     <div className="layout">
@@ -115,6 +148,9 @@ const Layout = () => {
           -webkit-overflow-scrolling: touch;
         }
       `}</style>
+
+      {/* Modal de Lembrete de Backup */}
+      <BackupReminderModal onBackupNow={handleBackupNow} />
     </div>
   );
 };
